@@ -48,49 +48,101 @@ La visualisation sert un objectif concret : **choisir de meilleures features**.
 
 ### 3) Modéliser : Logistic Regression (from scratch)
 
-#### ✅ Sigmoid : du score à la probabilité
-On calcule un score linéaire :
+## 🔍 Core concepts (Sigmoid, Loss, Gradient Descent)
 
-\[
-z = w^T x + b
-\]
+### 1) Why Logistic Regression uses the **sigmoid**
+Logistic Regression starts with a **linear score**:
 
-Puis on le transforme en probabilité avec la sigmoid :
+~~~math
+z = w^\top x + b
+~~~
 
-\[
+But a raw linear score can be any real number \((-\infty, +\infty)\).  
+We need a function that:
+- maps any value to a **probability**
+- stays in **[0, 1]**
+- increases smoothly with the score
+
+That’s exactly what the sigmoid does:
+
+~~~math
 \sigma(z)=\frac{1}{1+e^{-z}}
-\]
+~~~
+
+So the model outputs a probability:
+
+~~~math
+\hat{y}=P(y=1\mid x)=\sigma(w^\top x + b)
+~~~
+
+**Intuition**
+- big positive \(z\) → \(\hat{y}\approx 1\)
+- big negative \(z\) → \(\hat{y}\approx 0\)
+- \(z=0\) → \(\hat{y}=0.5\)
 
 ---
 
-#### ✅ Loss function : pénaliser l’erreur “au bon endroit”
-On veut punir fort un modèle **confiant mais faux** → **log-loss / cross-entropy** :
+### 2) Loss function — what it is and why we need it
+A model needs a **score** that measures how wrong it is, so we can improve it.  
+For binary classification we use **log-loss** (a.k.a. cross-entropy), because it:
+- strongly penalizes **confident but wrong** predictions
+- matches the probabilistic output of sigmoid
+- is differentiable → perfect for gradient-based optimization
 
-\[
-J(w)= -\frac{1}{m}\sum_{i=1}^{m}\Big(y_i\log(\hat y_i) + (1-y_i)\log(1-\hat y_i)\Big)
-\]
+~~~math
+J(w,b) = -\frac{1}{m}\sum_{i=1}^{m}\left[
+y^{(i)}\log\!\left(\hat{y}^{(i)}\right) + (1-y^{(i)})\log\!\left(1-\hat{y}^{(i)}\right)
+\right]
+~~~
 
-*(en pratique on protège aussi contre `log(0)` pour la stabilité numérique)*
+**Key intuition**
+- If \(y=1\) and \(\hat{y}\) is small → huge penalty  
+- If \(y=0\) and \(\hat{y}\) is large → huge penalty  
 
----
+To avoid numerical issues (like `log(0)`), we clip probabilities:
 
-#### ✅ Gradient Descent : apprendre en corrigeant
-On met à jour les poids pour minimiser la loss :
-
-\[
-w \leftarrow w - \alpha \nabla_w J(w)
-\]
-
-##### 🔥 Le rôle de la dérivée (la vraie boussole)
-La dérivée (le gradient) indique :
-- **la direction** dans laquelle la loss augmente
-- **l’intensité** de cette augmentation
-
-Donc, pour *descendre*, on va dans la direction opposée.
-
-Sans dérivée → pas de direction → pas d’apprentissage maîtrisé.
+~~~math
+\hat{y} \leftarrow \text{clip}(\hat{y}, \varepsilon, 1-\varepsilon)
+\qquad (\varepsilon \approx 10^{-15})
+~~~
 
 ---
+
+### 3) Gradient Descent — what it is, how we use it, and why
+Once we have a loss \(J(w,b)\), we want parameters \((w,b)\) that **minimize** it.
+
+**Gradient Descent** is an iterative algorithm:
+1) compute derivatives (the gradient) of the loss  
+2) update parameters in the **opposite direction** of the gradient
+
+Why derivatives matter:
+- the gradient tells us the direction where the loss increases fastest
+- moving opposite reduces the loss (locally) as efficiently as possible
+
+For Logistic Regression, the gradients are:
+
+~~~math
+\frac{\partial J}{\partial w} = \frac{1}{m}\sum_{i=1}^{m}\left(\hat{y}^{(i)} - y^{(i)}\right)x^{(i)}
+~~~
+
+~~~math
+\frac{\partial J}{\partial b} = \frac{1}{m}\sum_{i=1}^{m}\left(\hat{y}^{(i)} - y^{(i)}\right)
+~~~
+
+Update rule:
+
+~~~math
+w \leftarrow w - \alpha \frac{\partial J}{\partial w}
+\qquad
+b \leftarrow b - \alpha \frac{\partial J}{\partial b}
+~~~
+
+Where \(\alpha\) is the **learning rate**:
+- too big → unstable / diverges
+- too small → very slow learning
+
+**In short:** sigmoid → probabilities, log-loss → correct error signal, gradient descent → systematic learning via derivatives.
+----------
 
 ## 🌈 Multiclass : One-vs-Rest (One-vs-Many)
 La Logistic Regression est binaire à la base.  
